@@ -91,6 +91,11 @@ def ingest_initial_data(
     # approved limit / approved_limit
     # current debt / current_debt
     # (age not in sheet -> default 30)
+    
+    # Batch process customers for better performance
+    customers_to_create = []
+    customers_to_update = []
+    
     with transaction.atomic():
         for _, row in cdf.iterrows():
             try:
@@ -142,6 +147,11 @@ def ingest_initial_data(
 
             except Exception as e:
                 errors.append(f"Customer row error: {e}")
+        
+        # Use bulk operations for better performance
+        if customers_to_create:
+            Customer.objects.bulk_create(customers_to_create, batch_size=1000, ignore_conflicts=True)
+            created_customers += len(customers_to_create)
 
     # ---------- Loans ----------
     try:

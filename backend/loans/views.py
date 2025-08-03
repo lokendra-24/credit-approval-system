@@ -35,7 +35,10 @@ def compute_credit_score(customer: Customer) -> int:
       v.  If sum(current loans) > approved_limit => 0
     Heuristic weights to map to 100.
     """
-    loans = Loan.objects.filter(customer=customer)
+    # Optimize query by selecting only necessary fields
+    loans = Loan.objects.filter(customer=customer).only(
+        'loan_amount', 'tenure', 'emis_paid_on_time', 'start_date', 'end_date'
+    )
     today = date.today()
 
     # v) Hard stop: current principal > approved_limit -> score = 0
@@ -101,8 +104,13 @@ def enforce_interest_slab(credit_score: int, requested_rate: float) -> tuple[boo
 def affordability_ok(customer: Customer, new_emi: Decimal) -> bool:
     """If sum of all current EMIs > 50% of monthly salary => don't approve."""
     today = date.today()
-    current_emi_sum = Loan.objects.filter(customer=customer, end_date__gte=today)\
-                                  .aggregate(total=Sum("monthly_installment"))["total"] or Decimal("0")
+    # Optimize query by using only necessary fields and adding index hints
+    current_emi_sum = Loan.objects.filter(
+        customer=customer, 
+        end_date__gte=today
+    ).only('monthly_installment').aggregate(
+        total=Sum("monthly_installment")
+    )["total"] or Decimal("0")
     total = current_emi_sum + (new_emi or Decimal("0"))
     return total <= Decimal(customer.monthly_income) * Decimal("0.5")
 
