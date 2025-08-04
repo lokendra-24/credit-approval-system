@@ -75,10 +75,18 @@ def ingest_initial_data(
 
     # ---------- Customers ----------
     try:
-        cdf = pd.read_excel(customer_xlsx_path)
+        if customer_xlsx_path.endswith('.csv'):
+            cdf = pd.read_csv(customer_xlsx_path)
+        else:
+            cdf = pd.read_excel(customer_xlsx_path)
     except Exception as e:
-        errors.append(f"Failed to read customers Excel: {e}")
-        cdf = pd.DataFrame()
+        # Try CSV if Excel fails
+        try:
+            csv_path = customer_xlsx_path.replace('.xlsx', '.csv')
+            cdf = pd.read_csv(csv_path)
+        except Exception as e2:
+            errors.append(f"Failed to read customers file: {e}, CSV fallback: {e2}")
+            cdf = pd.DataFrame()
 
     cust_cols = _map_cols(cdf) if not cdf.empty else {}
 
@@ -145,10 +153,18 @@ def ingest_initial_data(
 
     # ---------- Loans ----------
     try:
-        ldf = pd.read_excel(loan_xlsx_path)
+        if loan_xlsx_path.endswith('.csv'):
+            ldf = pd.read_csv(loan_xlsx_path)
+        else:
+            ldf = pd.read_excel(loan_xlsx_path)
     except Exception as e:
-        errors.append(f"Failed to read loans Excel: {e}")
-        ldf = pd.DataFrame()
+        # Try CSV if Excel fails
+        try:
+            csv_path = loan_xlsx_path.replace('.xlsx', '.csv')
+            ldf = pd.read_csv(csv_path)
+        except Exception as e2:
+            errors.append(f"Failed to read loans file: {e}, CSV fallback: {e2}")
+            ldf = pd.DataFrame()
 
     loan_cols = _map_cols(ldf) if not ldf.empty else {}
 
